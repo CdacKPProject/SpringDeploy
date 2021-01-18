@@ -239,7 +239,7 @@ public class AdminService {
 		boolean status = false;
 		List<Staff> staffExists=new ArrayList<Staff>();
 		Firestore fs=getFirestoreConnection();
-		ApiFuture<QuerySnapshot> future =fs.collection(collectionStudent).get();
+		ApiFuture<QuerySnapshot> future =fs.collection(collectionStaff).get();
 		List<QueryDocumentSnapshot> documents;
 		try {
 			documents = future.get().getDocuments();
