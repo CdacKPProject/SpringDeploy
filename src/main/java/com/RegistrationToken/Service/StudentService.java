@@ -5,14 +5,17 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.client.RestTemplate;
 import com.RegistrationToken.Models.Student;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.RegistrationToken.Models.GeneralAuthentication;
+import com.RegistrationToken.Models.PaymentModel;
+import com.RegistrationToken.Models.PaymentReceipt;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -30,6 +33,7 @@ public class StudentService {
 	AdminService adminService;
 	
 	public final String collectionStudent="StudentList";
+	public final String collectionOrders="paymentCollection";
 	
 	private Firestore getFirestoreConnection() {
 		Firestore fs = FirestoreClient.getFirestore();
@@ -79,7 +83,7 @@ public class StudentService {
 		boolean status = false;
 		String uid=checkHeaderAuthentication(header);
 		DocumentReference documentReference = fs.collection(collectionStudent).document(uid);//To get document of a specific user	
-		ApiFuture<WriteResult> result =documentReference.update("name",newProfile.getName());//Update logic
+		ApiFuture<WriteResult> result =documentReference.update("name",newProfile.getName(),"mobileNumber",newProfile.getMobileNumber());//Update logic
 		if(result.isCancelled()) {
 			return status;
 		}
@@ -169,7 +173,7 @@ public class StudentService {
 			String uid = checkHeaderAuthentication(authorization);
 			if(!uid.isEmpty()) {
 				 student=getStudentData(prnNumber); 
-				 Student stu=new Student(student.getPrnNumber(),student.getName(), student.getCourse());
+				 Student stu=new Student(student.getPrnNumber(), student.getName(), student.getBatch(), student.getCourse(), student.getMobileNumber(), student.getFoodCoupon(), student.getTeaCofeeCoupon());
 				 gAuth.setStudent(stu);
 				 gAuth.setMessage("Student Data got sucessfully");
 				 gAuth.setTokenStatus(true);
@@ -193,11 +197,96 @@ public class StudentService {
 		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
 		ZonedDateTime zone = ZonedDateTime.now(zoneId);
 		timeNow=time.format(zone);
-		
-		if((timeNow.compareTo(beforeTen)<0) && (timeNow.compareTo(afterFour)>0)) {
+		if((timeNow.compareTo(beforeTen)<0) || (timeNow.compareTo(afterFour)>0)) {
+			//System.out.println("true");
 			return isValid=true;
 		}else {
+			//System.out.println("false");
 			return isValid;
 		}
+	}
+
+	public GeneralAuthentication orderIdForPayment(String amount, String authorization) throws FirebaseAuthException, JsonProcessingException {
+		RestTemplate rTemp = new RestTemplate();
+		PaymentModel payment = null;
+		GeneralAuthentication gAuth = new GeneralAuthentication(payment, false, null);
+		try {
+			String uid = checkHeaderAuthentication(authorization);
+			if(!uid.isEmpty()) {
+				String url = "https://node-for-paymnet.herokuapp.com/razorpayOrders?amount="+amount;
+				String s=rTemp.getForObject(url, String.class);
+				ObjectMapper objMapper = new ObjectMapper();
+				payment=objMapper.readValue(s, PaymentModel.class);
+				PaymentModel pModel = new PaymentModel(payment.isStatus(),payment.getOrderId(),payment.isFoodOrTea());
+				gAuth.setPayment(pModel);
+				gAuth.setMessage("Order id");
+				gAuth.setTokenStatus(payment.isStatus());
+			}
+			return gAuth;
+		} catch (FirebaseAuthException e) {
+			throw(e);
+		} catch (JsonMappingException e) {
+			throw(e);
+		} catch (JsonProcessingException e) {
+			throw(e);
+		}
+	}
+
+	public GeneralAuthentication checkPaymentSignature(PaymentModel payment, String authorization) throws FirebaseAuthException,Exception{
+		Firestore fs=getFirestoreConnection();
+		RestTemplate rTemp = new RestTemplate();
+		GeneralAuthentication gAuth = new GeneralAuthentication(false,null);
+		try {
+			String uid = checkHeaderAuthentication(authorization);
+			if(!uid.isEmpty()) {
+				String url = "https://node-for-paymnet.herokuapp.com/verifySignature";
+				String res=rTemp.postForObject(url, payment, String.class);
+				if(res.equals("true")) {
+					Student studData=getStudentData(uid);
+					if(payment.isFoodOrTea()) {
+						int foodCoup=studData.getFoodCoupon()+30;
+						ApiFuture<WriteResult> docs = fs.collection(collectionStudent).document(uid).update("foodCoupon",foodCoup);
+						if(docs.isCancelled()) {
+							gAuth.setMessage("Failed to Update");
+						}
+						addDataToOrders(payment,uid,"1200");
+						gAuth.setTokenStatus(true);
+						gAuth.setMessage("Food Coupons added to your account");
+					}else {
+						int TeaCoup=studData.getTeaCofeeCoupon()+50;
+						ApiFuture<WriteResult> docs = fs.collection(collectionStudent).document(uid).update("teaCofeeCoupon",TeaCoup);
+						if(docs.isCancelled()) {
+							gAuth.setMessage("Failed to Update");
+						}
+						addDataToOrders(payment,uid,"300");
+						gAuth.setTokenStatus(true);
+						gAuth.setMessage("Tea/Coffee Coupons added to your account");
+					}	
+				}else {
+					gAuth.setMessage("Failed if payment made refund will be intiated");
+				}
+			}
+			return gAuth;
+		} catch (FirebaseAuthException e) {
+			throw(e);
+		} catch (Exception e) {
+			throw(e);
+		} 
+	}
+
+	private void addDataToOrders(PaymentModel payment, String uid, String amount) throws Exception {
+		Firestore fs=getFirestoreConnection();
+		try {
+			Student stu = getStudentData(uid);
+			DateTimeFormatter date = DateTimeFormatter.ofPattern("dd-MM-yyyy");	
+			ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+			ZonedDateTime zone = ZonedDateTime.now(zoneId);
+			String dateNow=date.format(zone);
+			PaymentReceipt rec = new PaymentReceipt(uid, payment.getOrderId(), payment.getPaymentId(), stu.getName(), stu.getCourse(), amount,dateNow);
+			ApiFuture<WriteResult> res = fs.collection(collectionOrders).document(rec.getOrderId()).set(rec);
+		} catch (InterruptedException | ExecutionException e) {
+			throw(e);
+		}
+		
 	}
 }

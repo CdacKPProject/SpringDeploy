@@ -8,16 +8,14 @@
 		<version>2.4.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	
-	<groupId> com.RegistrationToken.TokenRegistration.TokenRegistrationApplication</groupId>
-	<artifactId>Spring-Boot-Main-Class</artifactId>
+	<groupId>com.RegistrationToken</groupId>
+	<artifactId>TokenRegistration</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>TokenRegistration</name>
 	<description>Demo project for Spring Boot</description>
 
 	<properties>
 		<java.version>1.8</java.version>
-		<jdk.version>1.8</jdk.version>
 	</properties>
 
 	<dependencies>
@@ -76,25 +74,29 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
-
+		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-core</artifactId>
+		    <version>2.12.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.springfox/springfox-swagger-ui -->
+		<dependency>
+		    <groupId>io.springfox</groupId>
+		    <artifactId>springfox-swagger-ui</artifactId>
+		    <version>2.9.2</version>
+		</dependency>
+		<dependency>
+		   <groupId>io.springfox</groupId>
+		   <artifactId>springfox-swagger2</artifactId>
+		   <version>2.9.2</version>
+		</dependency>
+		
 		
 	</dependencies>
 
 	<build>
 		<plugins>
-	
-			<plugin>
-        <groupId>com.heroku.sdk</groupId>
-        <artifactId>heroku-maven-plugin</artifactId>
-        <version>3.0.3</version>
-        <configuration>
-      <appName>cdaclunch</appName>     
-      <processTypes>
-     <web>java $JAVA_OPTS -cp target/classes:target/dependency/* com.RegistrationToken.TokenRegistration.TokenRegistrationApplication  -Dserver.port=$PORT </web>
-      </processTypes>
-      <jdkVersion>1.8</jdkVersion>
-    </configuration>
-      </plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

@@ -1,5 +1,9 @@
 package com.RegistrationToken.Service;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,8 +11,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.RegistrationToken.Models.GeneralAuthentication;
+import com.RegistrationToken.Models.RegisterdStudent;
 import com.RegistrationToken.Models.Staff;
-import com.RegistrationToken.Models.Student;
 import com.RegistrationToken.Models.VerifiyingCoupons;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
@@ -75,7 +79,7 @@ public class StaffService {
 			boolean status = false;
 			String uid=checkHeaderAuthentication(header);
 			DocumentReference documentReference = fs.collection(collectionStaff).document(uid);//To get document of a specific user	
-			ApiFuture<WriteResult> result =documentReference.update("staffName",newProfile.getStaffName());//Update logic
+			ApiFuture<WriteResult> result =documentReference.update("staffName",newProfile.getStaffName(),"mobileNumber",newProfile.getMobileNumber());//Update logic
 			if(result.isCancelled()) {
 				return status;
 			}
@@ -156,6 +160,25 @@ public class StaffService {
 				throw(e);
 			}
 		}
-		
 
+		public List<RegisterdStudent> getRegCollection(String authorization) throws FirebaseAuthException, ExecutionException, InterruptedException  {
+			List<RegisterdStudent> list=null;
+			try {
+				String uid = checkHeaderAuthentication(authorization);
+				if(!uid.isEmpty()) {
+					DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy");	
+					ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+					ZonedDateTime zone = ZonedDateTime.now(zoneId);
+					String regList ="RegStudentList"+dtf.format(zone);
+					list = adminService.getTodaysRegList(regList);
+				}
+				return list;
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			} catch (InterruptedException e) {
+				throw(e);
+			} catch (ExecutionException e) {
+				throw(e);
+			} 
+		}
 }

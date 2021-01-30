@@ -36,6 +36,12 @@ public class Staff {
 		this.password = password;
 		this.mobileNumber = mobileNumber;
 	}
+	
+	public Staff(String staffId, String staffName, String mobileNumber) {
+		this.staffId = staffId;
+		this.staffName = staffName;
+		this.mobileNumber = mobileNumber;
+	}
 	public Staff() {
 		
 	}

@@ -6,7 +6,21 @@ public class GeneralAuthentication {
 	private String fToken;
 	private String message;
 	private Student student;
+	private PaymentModel payment;
+	private Staff staff;
 	
+	public Staff getStaff() {
+		return staff;
+	}
+	public void setStaff(Staff staff) {
+		this.staff = staff;
+	}
+	public PaymentModel getPayment() {
+		return payment;
+	}
+	public void setPayment(PaymentModel payment) {
+		this.payment = payment;
+	}
 	public Student getStudent() {
 		return student;
 	}
@@ -46,6 +60,19 @@ public class GeneralAuthentication {
 		this.tokenStatus = tokenStatus;
 		this.message = message;
 		this.student = student;
+	}
+	
+	public GeneralAuthentication(PaymentModel payment,boolean tokenStatus, String message) {
+		this.tokenStatus = tokenStatus;
+		this.message = message;
+		this.payment = payment;
+	}
+	
+	
+	public GeneralAuthentication(String message , boolean tokenStatus, Staff staff) {
+		this.tokenStatus = tokenStatus;
+		this.message = message;
+		this.staff = staff;
 	}
 	public GeneralAuthentication() {
 		

@@ -13,30 +13,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
 import com.RegistrationToken.Helpers.ControllerExceptionHandler;
 import com.RegistrationToken.Helpers.ControllerHelperHandler;
-import com.RegistrationToken.Models.Admin;
 import com.RegistrationToken.Models.GeneralAuthentication;
-import com.RegistrationToken.Models.PasswordChange;
+import com.RegistrationToken.Models.PaymentReceipt;
 import com.RegistrationToken.Models.Staff;
 import com.RegistrationToken.Models.Student;
-
 import com.RegistrationToken.Service.AdminService;
-
 import com.google.firebase.auth.FirebaseAuthException;
 
 
 @CrossOrigin(origins = "*")
 @RestController
+@RequestMapping("/admin")
 public class AdminController {
 
 	@Autowired
@@ -44,7 +43,7 @@ public class AdminController {
 	
 	final static Logger logger = Logger.getLogger(AdminController.class);
 	
-	@PostMapping("/admin/uploadCSVStudentFile") 
+	@PostMapping("/uploadCSVStudentFile") 
 	 public ResponseEntity<Object> uploadCSVFile(@RequestParam("file") MultipartFile file,@RequestHeader("Authorization") String Authorization) {
 		ResponseEntity<Object> response=null;
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -60,8 +59,8 @@ public class AdminController {
 					 return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, "File uploaded failed", res, body, response);
 				} catch (FirebaseAuthException e) {
 					logger.error("Firebase Exception : "+e.getMessage());
-					String msg="Firebase server error";
-					return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+					String msg="Firebase Internal Error";
+					return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
 				} catch (IOException e) {
 					logger.error("Internal Exception : "+e.getMessage());
 					String msg="CSV File Format error";
@@ -70,7 +69,7 @@ public class AdminController {
 			 }
 	}
 	
-	@PostMapping("/admin/uploadCSVStaffFile") 
+	@PostMapping("/uploadCSVStaffFile") 
 	 public ResponseEntity<Object> uploadCSVStaffFile(@RequestParam("file") MultipartFile file,@RequestHeader("Authorization") String Authorization) {
 		ResponseEntity<Object> response=null;
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -86,8 +85,8 @@ public class AdminController {
 					return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, "File uploaded failed", res, body, response);
 				} catch (FirebaseAuthException e) {
 					logger.error("Firebase Exception : "+e.getMessage());
-					String msg="Firebase server error";
-					return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+					String msg="Firebase Internal Error";
+					return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
 				} catch (IOException e) {
 					logger.error("Internal Exception : "+e.getMessage());
 					String msg="CSV File Format error";
@@ -95,7 +94,8 @@ public class AdminController {
 				} 
 		 }
 	}
-	@PutMapping("/admin/resetStudentPassword")
+	
+	@PutMapping("/resetStudentPassword")
 	public ResponseEntity<Object> resetStudentPassword(@RequestBody Student student,@RequestHeader("Authorization") String Authorization) {
 		ResponseEntity<Object> response=null;
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -107,8 +107,8 @@ public class AdminController {
 			return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK,gAuth.getMessage(), gAuth.isTokenStatus(), body, response);
 		} catch (FirebaseAuthException e) {
 			logger.error("Firebase Exception : "+e.getMessage());
-			String msg="Firebase server error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
 		} catch (ExecutionException | InterruptedException e) {
 			logger.error("Internal Exception : "+e.getMessage());
 			String msg="Internal server error";
@@ -116,7 +116,7 @@ public class AdminController {
 		} 
 	}
 	
-	@PostMapping("/admin/addStudent")
+	@PostMapping("/addStudent")
 	public ResponseEntity<Object> addStudent(@RequestBody Student student,@RequestHeader("Authorization") String Authorization) 
 	{
 		ResponseEntity<Object> response=null;
@@ -129,12 +129,12 @@ public class AdminController {
 			return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK,gAuth.getMessage(), gAuth.isTokenStatus(), body, response);
 		} catch (FirebaseAuthException e) {
 			logger.error("Firebase Exception : "+e.getMessage());
-			String msg="Firebase server error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
 		}
 	}
 	
-	@PutMapping("/admin/resetStaffPassword")
+	@PutMapping("/resetStaffPassword")
 	public ResponseEntity<Object> resetStaffPassword(@RequestBody Staff staff,@RequestHeader("Authorization") String Authorization) {
 		ResponseEntity<Object> response=null;
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -146,8 +146,8 @@ public class AdminController {
 			return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK,gAuth.getMessage(), gAuth.isTokenStatus(), body, response);
 		} catch (FirebaseAuthException e) {
 			logger.error("Firebase Exception : "+e.getMessage());
-			String msg="Firebase server error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
 		} catch (Exception e) {
 			logger.error("Internal Exception : "+e.getMessage());
 			String msg="Internal server error";
@@ -155,7 +155,7 @@ public class AdminController {
 		}
 	}
 	
-	@PostMapping("/admin/addStaff")
+	@PostMapping("/addStaff")
 	public ResponseEntity<Object> addStaff(@RequestBody Staff staff,@RequestHeader("Authorization") String Authorization) 
 	{
 		ResponseEntity<Object> response=null;
@@ -168,8 +168,8 @@ public class AdminController {
 			return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK,gAuth.getMessage(), gAuth.isTokenStatus(), body, response);
 		} catch (FirebaseAuthException e) {
 			logger.error("Firebase Exception : "+e.getMessage());
-			String msg="Firebase server error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
 		}
 	}
 	
@@ -186,79 +186,16 @@ public class AdminController {
 			return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK,sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
 		} catch (FirebaseAuthException e) {
 			logger.error("Firebase Exception : "+e.getMessage());
-			String msg="Firebase server error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
 		} catch (IOException |InterruptedException |ExecutionException e) {
 			logger.error("Internal Exception : "+e.getMessage());
 			String msg="Internal server error";
 			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
 		} 
 	}
-
-	@PostMapping("/admin/adminLogin")
-	public ResponseEntity<Object> adminLogin(@RequestBody Admin admin){
-		ResponseEntity<Object> response = null;
-		Map<String, Object> body = new LinkedHashMap<>();
-			GeneralAuthentication sAuth;
-			try {
-				sAuth = adminService.checkAuthentication(admin);
-				if(sAuth.isTokenStatus()) {
-					return ControllerHelperHandler.loginHandler(HttpStatus.OK, sAuth, body, response);
-				}else {
-					return ControllerHelperHandler.loginHandler(HttpStatus.NOT_FOUND, sAuth, body, response);
-				}
-			} catch (FirebaseAuthException e) {
-				logger.error("Firebase Exception : "+e.getMessage());
-				String msg="Firebase server error";
-				return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
-			} catch (Exception e) {
-				logger.error("Internal Exception : "+e.getMessage());
-				String msg="Internal server error";
-				return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
-			}
-			
-	}
 	
-	@PutMapping("/admin/updateProfile")
-	public ResponseEntity<Object> updateAdminProfile(@RequestBody Admin newProfile,@RequestHeader("Authorization") String Authorization) {
-		ResponseEntity<Object> response=null;
-		Map<String, Object> body = new LinkedHashMap<>();
-		try {
-			boolean res=adminService.profileUpdate(newProfile,Authorization);
-			if(res) {
-				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, "Profile Updated Sucessfully", res, body, response);
-			}
-			return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, "Profile Update failed", res, body, response);
-		} catch (FirebaseAuthException e) {
-			logger.error("Firebase Exception : "+e.getMessage());
-			String msg="Firebase Internal Error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
-		}
-	}
-	
-	@PutMapping("/admin/updatePassword")
-	public ResponseEntity<Object> updateStaffPassword(@RequestBody PasswordChange spc,@RequestHeader("Authorization") String Authorization) {
-		ResponseEntity<Object> response=null;
-		Map<String, Object> body = new LinkedHashMap<>();
-		try {
-			String res=adminService.updatePassword(spc.getOldPassword(),spc.getNewPassword(),Authorization);
-			if(res.equals("Sucess")) {
-				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, "Password Updated Sucessfully", true, body, response);
-			}else {
-				return ControllerHelperHandler.generalHelperHandler(HttpStatus.UNAUTHORIZED, res, false, body, response);
-			}
-		} catch (FirebaseAuthException e) {
-			logger.error("Firebase Exception : "+e.getMessage());
-			String msg="Firebase Internal Error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
-		} catch (Exception e) {
-			logger.error("Internal Exception : "+e.getMessage());
-			String msg="Internal server error";
-			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
-		}
-	}
-	
-	@GetMapping("/admin/getAllStudents")
+	@GetMapping("/getAllStudents")
 	public ResponseEntity<Object> getAllStudentsData(@RequestHeader("Authorization") String Authorization){
 		ResponseEntity<Object> response=null;
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -275,8 +212,161 @@ public class AdminController {
 		} catch (FirebaseAuthException e) {
 			e.printStackTrace();logger.error("Firebase Exception : "+e.getMessage());
 			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		}
+	}
+	
+	@DeleteMapping("/deleteStudentByPrn")
+	public ResponseEntity<Object> deleteStudent(@RequestParam("prnNumber") String prnNumber,@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response=null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
+		try {
+			sAuth=adminService.removeStudent(prnNumber,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}else {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		} catch (InterruptedException | ExecutionException e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		} 
+	}
+	
+	@DeleteMapping("/deleteStaffById")
+	public ResponseEntity<Object> deleteStaff(@RequestParam("staffId") String staffId,@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response=null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
+		try {
+			sAuth=adminService.removeStaff(staffId,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}else {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		}  catch (Exception e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		} 
+	}
+	
+	@DeleteMapping("/deleteByBatch")
+	public ResponseEntity<Object> deleteStudentBatch(@RequestParam("batchName") String batchName,@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response=null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
+		try {
+			sAuth=adminService.batchDelete(batchName,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}else {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+
+		} catch (InterruptedException | ExecutionException e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		}
+	}
+	
+	@GetMapping("/getRegColList")
+	public ResponseEntity<Object> getRegCollectionList(@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response=null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		List<String> listGot = null;
+		try {
+			listGot=adminService.getRegCollList(Authorization);
+			return ControllerHelperHandler.listHelperHandler(HttpStatus.OK, "List of COllections", listGot, body, response);
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		}
+	}
+	
+	@DeleteMapping("/deleteRegCol")
+	public ResponseEntity<Object> deleteRegCollections(@RequestParam("colNames") List<String> colNames,@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response=null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
+		try {
+			sAuth=adminService.deleteRegColFromDb(colNames,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}else {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		} catch (Exception e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
 			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
 		}
 	}
 
+	@GetMapping("/getStaffById")
+	public ResponseEntity<Object> getStaffById(@RequestParam("staffId") String staffId,@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response=null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
+		try {
+			sAuth = adminService.getStaffById(staffId,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.getStaff(), body, response);
+			}
+			return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.getStaff(), body, response);
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		}  catch (Exception e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		} 
+	}
+	
+	@GetMapping("/getPaymentList")
+	public ResponseEntity<Object> getPaymentList(@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response=null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		List<PaymentReceipt> pList = null;
+		try {
+			pList=adminService.getPaymentDetails(Authorization);
+			if(pList.size()>0) {
+				return ControllerHelperHandler.payListRegHelperHandler(HttpStatus.OK,"Payment List", pList, body, response);
+			}else {
+				return ControllerHelperHandler.payListRegHelperHandler(HttpStatus.OK,"No Payment List to Display", pList, body, response);
+			}
+			
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		} catch (ExecutionException | InterruptedException e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		} 
+	}
 }

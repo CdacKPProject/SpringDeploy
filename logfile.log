@@ -6,3 +6,19 @@
 16:04:17,443 ERROR StudentController:70 - Firebase Exception : verifyIdToken() expects an ID token, but was given a custom token. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
 14:35:43,186 ERROR AdminController:109 - Firebase Exception : Firebase ID token has expired. Get a fresh ID token and try again. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
 14:36:56,416 ERROR AdminController:109 - Firebase Exception : Failed to parse Firebase ID token. Make sure you passed a string that represents a complete and valid JWT. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
+23:16:31,546 ERROR AdminController:152 - Internal Exception : null
+23:18:07,388 ERROR AdminController:152 - Internal Exception : null
+23:19:29,177 ERROR AdminController:152 - Internal Exception : null
+14:49:48,342 ERROR FirebaseIntializer:34 - FileNotFoundException.\lunc.json (The system cannot find the file specified)
+14:50:45,960 ERROR FirebaseIntializer:34 - FileNotFoundException.\lunc.json (The system cannot find the file specified)
+14:52:09,472 ERROR AdminController:215 - Internal Exception : FirebaseApp with name [DEFAULT] doesn't exist. 
+16:46:00,491 ERROR StudentController:97 - Internal Exception : 'path' must be a non-empty String
+17:23:48,717 ERROR StudentController:174 - JSON Exception : Unrecognized token 'http': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')
+ at [Source: (String)"http://localhost:8000/razorpayOrders?amount=1200"; line: 1, column: 5]
+19:17:52,847 ERROR StudentController:195 - Firebase Exception : Firebase ID token has expired. Get a fresh ID token and try again. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
+19:20:37,697 ERROR StudentController:195 - Firebase Exception : verifyIdToken() expects an ID token, but was given a custom token. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
+20:22:14,481 ERROR StudentController:172 - Firebase Exception : Error while fetching public key certificates: connect timed out
+20:31:14,816 ERROR StudentController:195 - Firebase Exception : Firebase ID token has expired. Get a fresh ID token and try again. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
+17:01:56,118 ERROR StudentController:122 - Firebase Exception : Firebase ID token has expired. Get a fresh ID token and try again. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
+17:45:01,302 ERROR AdminController:360 - Firebase Exception : Failed to parse Firebase ID token. Make sure you passed a string that represents a complete and valid JWT. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details on how to retrieve an ID token.
+13:43:46,681 ERROR StudentController:197 - Internal Exception : I/O error on POST request for "https://node-for-paymnet.herokuapp.com/verifySignature": Connection reset; nested exception is javax.net.ssl.SSLException: Connection reset

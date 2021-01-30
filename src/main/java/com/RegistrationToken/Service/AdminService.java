@@ -4,12 +4,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -17,13 +15,11 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.RegistrationToken.Models.Admin;
 import com.RegistrationToken.Models.GeneralAuthentication;
+import com.RegistrationToken.Models.PaymentReceipt;
 import com.RegistrationToken.Models.RegisterdStudent;
 import com.RegistrationToken.Models.Staff;
 import com.RegistrationToken.Models.Student;
@@ -52,8 +48,8 @@ public class AdminService {
 
 	private final String collectionStudent = "StudentList";
 	private final String collectionStaff = "StaffList";
-	private final String collectionAdmin="AdminData";
-	private String regStudentList="RegStudData";
+	public final String collectionOrders="paymentCollection";
+	private String regStudentList="";
 	
 	private Firestore getFirestoreConnection() {
 		Firestore fs = FirestoreClient.getFirestore();
@@ -65,15 +61,6 @@ public class AdminService {
 		return encoder;
 	}	
 	
-	@Scheduled(cron = "0 30 15 * * MON-SAT",zone="GMT+5:30")
-	private void stringData() {
-		regStudentList=null;
-		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy");	
-		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
-		ZonedDateTime zone = ZonedDateTime.now(zoneId);
-		regStudentList ="RegStudentList"+dtf.format(zone);
-		System.out.println(regStudentList);
-	}
 	
 	 public boolean parseCSVFile(MultipartFile file, String Authorization) throws FirebaseAuthException, IOException 
 	  { 
@@ -276,7 +263,6 @@ public class AdminService {
 				return gen;
 			}
 			return gen;
-			
 		} catch (FirebaseAuthException e) {
 			throw(e);
 		}
@@ -324,7 +310,8 @@ public class AdminService {
 			}
 		  return true;
 		 }
-	 public List<Student> getAllStudent(String authorization) throws InterruptedException,ExecutionException,FirebaseAuthException {
+	
+		public List<Student> getAllStudent(String authorization) throws InterruptedException,ExecutionException,FirebaseAuthException {
 		 List<Student> lst = new ArrayList<Student>();
 		 try {
 				String uid = checkHeaderAuthentication(authorization);
@@ -348,54 +335,8 @@ public class AdminService {
 			} 
 			
 		}
-
-		public GeneralAuthentication checkAuthentication(Admin admin) throws FirebaseAuthException,Exception {
-			Firestore fs=getFirestoreConnection();
-			BCryptPasswordEncoder encoder=getBcryptEncoder();
-			GeneralAuthentication sAuth = new GeneralAuthentication(false,null,null);
-			Admin ad=null;
-			DocumentReference documentReference = fs.collection(collectionAdmin).document(admin.getAdminId());
-			ApiFuture<DocumentSnapshot> doc = documentReference.get();
-			DocumentSnapshot dsnap;
-			try {
-				dsnap = doc.get();
-				if(dsnap.exists()) {
-					ad=dsnap.toObject(Admin.class);
-					boolean passwordMatched =encoder.matches(admin.getPassword(), ad.getPassword());
-					if(passwordMatched) {
-						String uid = ad.getAdminId();
-						String customToken = FirebaseAuth.getInstance().createCustomToken(uid);
-						sAuth.setTokenStatus(passwordMatched);
-						sAuth.setfToken(customToken);
-						sAuth.setMessage("Login Sucessful");
-						return sAuth;
-					}else {
-						sAuth.setMessage("Password mismatch");
-					}
-		 		}else {
-		 			sAuth.setMessage("staffId doesnot exist in the collection");
-		 		}
-			} catch (InterruptedException | ExecutionException e) {
-				throw(e);
-
-			} catch (FirebaseAuthException e) {
-				throw(e);
-			}
-			return sAuth;
-		}
 		
-		public boolean profileUpdate(Admin newProfile, String header) throws FirebaseAuthException {
-			Firestore fs=getFirestoreConnection();
-			boolean status = false;
-			String uid=checkHeaderAuthentication(header);
-			DocumentReference documentReference = fs.collection(collectionAdmin).document(uid);//To get document of a specific user	
-			ApiFuture<WriteResult> result =documentReference.update("adminName",newProfile.getAdminName(),"mobileNumber",newProfile.getMobileNumber());//Update logic
-			if(result.isCancelled()) {
-				return status;
-			}
-			return status=true;
-		}
-		
+
 		private String checkHeaderAuthentication(String header) throws FirebaseAuthException {
 			header= header.replace("Bearer ", "");
 			FirebaseToken decodeToken = FirebaseAuth.getInstance().verifyIdToken(header);
@@ -403,44 +344,22 @@ public class AdminService {
 			return uid;
 		}
 		
-		public String updatePassword(String oldPassword,String newPassword,String header) throws FirebaseAuthException,Exception
-		{
-			Firestore fs=getFirestoreConnection();
-			BCryptPasswordEncoder encoder=getBcryptEncoder();
-			Admin ad = null;
-			String adminId=checkHeaderAuthentication(header);
-			if(!(adminId.isEmpty())) {
-				DocumentReference documentReference = fs.collection(collectionAdmin).document(adminId);//To get document of a specific user
-				ApiFuture<DocumentSnapshot> doc = documentReference.get();
-				try {
-					DocumentSnapshot d=doc.get();
-					if(d.exists()) {
-						ad=d.toObject(Admin.class);//map to student class object
-						boolean passwordMatched =encoder.matches(oldPassword, ad.getPassword());//checking password
-						if(passwordMatched) {
-							String sd=encoder.encode(newPassword);
-							ApiFuture<WriteResult>doca=fs.collection(collectionAdmin).document(adminId).update("password",sd);//setting data in collection
-							return "Sucess";
-						}else {
-							return "Password doesn't match";
-						}
-					}else {
-						return "Document doesnot exists";
-					}
-				} catch (InterruptedException | ExecutionException e) {
-					throw(e);
-				}
-			}else {
-				return "prnNumber invalid";
-			}			
-		}
+		
 
 	
-		private boolean isRegisterd(String prnNumber) throws Exception {
+		private boolean isRegisterd(String prnNumber) throws InterruptedException,ExecutionException {
 			boolean status = false;
 			List<RegisterdStudent> regStu=new ArrayList<RegisterdStudent>();
 			Firestore fs=getFirestoreConnection();
+			String isDate=getTheValidDate();
+			String coll="RegStudentList"+isDate;
+			if(isPresent(coll)) {
+				 regStudentList = coll ;
+			}else {
+				regStudentList = "RegStudentList"+isDate;
+			}
 			ApiFuture<QuerySnapshot> future =fs.collection(regStudentList).get();
+			
 			List<QueryDocumentSnapshot> documents;
 			try {
 				documents = future.get().getDocuments();
@@ -461,23 +380,26 @@ public class AdminService {
 			}
 			
 		}
+		
 
 		public GeneralAuthentication downloadFile(HttpServletResponse response, String date, String authorization) throws FirebaseAuthException, ExecutionException, IOException, InterruptedException {
 			GeneralAuthentication gen = new GeneralAuthentication(false, null);
 			try {
 				String uid=checkHeaderAuthentication(authorization);
 				if(!(uid.isEmpty())){
-				String findCollection="RegisertedStudentList"+date;
-				boolean findColStatus=isPresent(findCollection);
-				if(findColStatus) {
-				startDownloading(response,findCollection);
-				gen.setTokenStatus(true);
-				gen.setMessage("file downloaded sucessfully");
-				return gen;
-				}else {
-					gen.setMessage("collection not found");
-					return gen;
-				}
+					String findCollection="RegStudentList"+date;
+					System.out.println(findCollection);
+					boolean findColStatus=isPresent(findCollection);
+					if(findColStatus) {
+						startDownloading(response,findCollection);
+						gen.setTokenStatus(true);
+						gen.setMessage("file downloaded sucessfully");
+						return gen;
+					}
+					else {
+						gen.setMessage("collection not found");
+						return gen;
+					}
 				}
 				gen.setMessage("UnAuthorized");
 				return gen;
@@ -493,7 +415,6 @@ public class AdminService {
 			
 		}
 
-		
 		private void startDownloading(HttpServletResponse response, String findCollection) throws ExecutionException, IOException, InterruptedException  {
 			response.setContentType("application/octet-stream");
 			String headerkey="Content-Disposition";		
@@ -539,7 +460,7 @@ public class AdminService {
 			Iterable<CollectionReference> allCol = fs.listCollections();
 			List<String> result = new ArrayList<String>(); 
 		    for (CollectionReference str : allCol) {
-		    	System.out.println(str.getPath());
+		    	//System.out.println(str.getPath());
 		        result.add(str.getPath());
 		    }
 		    for(String str:result) {
@@ -554,8 +475,12 @@ public class AdminService {
 			Firestore fs=getFirestoreConnection();
 			RegisterdStudent regStudent=null;
 			GeneralAuthentication gAuth = new GeneralAuthentication(false, null);
+			 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy"); 
+			 ZoneId zoneId =ZoneId.of("Asia/Kolkata"); 
+			 ZonedDateTime zone = ZonedDateTime.now(zoneId);
+			 regStudentList ="RegStudentList"+dtf.format(zone);
 			try {
-				boolean isRegStatus=isRegisterd(prnNumber);
+				boolean isRegStatus=isRegisterdForLunch(prnNumber,regStudentList);
 				if(isRegStatus) {
 					regStudent=getRegStudentObj(prnNumber);
 					if(!regStudent.isEatUpStatus()) {
@@ -575,6 +500,32 @@ public class AdminService {
 			
 		}
 		
+		private boolean isRegisterdForLunch(String prnNumber, String regStudentList2) throws InterruptedException, ExecutionException {
+			boolean status = false;
+			List<RegisterdStudent> regStu=new ArrayList<RegisterdStudent>();
+			Firestore fs=getFirestoreConnection();
+			regStudentList=regStudentList2;
+			ApiFuture<QuerySnapshot> future =fs.collection(regStudentList).get();
+			List<QueryDocumentSnapshot> documents;
+			try {
+				documents = future.get().getDocuments();
+				for (DocumentSnapshot document : documents) {
+					RegisterdStudent rs = document.toObject(RegisterdStudent.class);
+					regStu.add(rs);
+					}
+				for(RegisterdStudent lst : regStu) {
+					if(lst.getPrnNumber().equals(prnNumber)) {
+						return status=true;
+					}
+				}
+				return status;
+			} catch (InterruptedException e) {
+				throw(e);
+			} catch (ExecutionException e) {
+				throw(e);
+			}
+		}
+
 		private RegisterdStudent getRegStudentObj(String prn) throws InterruptedException, ExecutionException {
 			Firestore fs=getFirestoreConnection();
 			RegisterdStudent stu = null;
@@ -602,6 +553,7 @@ public class AdminService {
 			Student stu = null;
 			DocumentReference documentReference = fs.collection(collectionStudent).document(prn);//To get document of a specific user
 			ApiFuture<DocumentSnapshot> doc = documentReference.get();
+			System.out.println("getStudenObj method");
 			DocumentSnapshot dsnap;
 			try {
 				dsnap = doc.get();
@@ -643,43 +595,50 @@ public class AdminService {
 		}
 
 
-		public GeneralAuthentication addStudentToLunchList(List<Student> student, Student stu) throws Exception {
+		public GeneralAuthentication addStudentToLunchList(List<Student> student, Student stu) throws InterruptedException, ExecutionException  {
 			Firestore fs=getFirestoreConnection();
 			GeneralAuthentication gAuth = new GeneralAuthentication(false, null);
 			List<Student> notRegisteredForLunch = new ArrayList<Student>();
 			List<Student> RegisteredForLunch = new ArrayList<Student>();
-			if(stu.getFoodCoupon()>=student.size()) {
-				for(Student checkStudent:student) {
-					boolean regStatus=isRegisterd(checkStudent.getPrnNumber());
-					if(!regStatus) {
-						notRegisteredForLunch.add(checkStudent);
-					}else {
-						RegisteredForLunch.add(checkStudent);
-					}
-				}
-				for(Student addToLunchReg :notRegisteredForLunch ) {
-					registerForLunchDb(addToLunchReg);
-				}
-				stu.setFoodCoupon(stu.getFoodCoupon()-notRegisteredForLunch.size());
-				fs.collection(collectionStudent).document(stu.getPrnNumber()).update("foodCoupon",stu.getFoodCoupon());
-				if(student.size()== notRegisteredForLunch.size()) {
-					String getDate = getTheValidDate();
-					gAuth.setMessage("students registered for lunch sucessfully "+getDate);
-					gAuth.setTokenStatus(true);	
-				}else {
-					String getDate = getTheValidDate();
-					String msg="";
-					for(Student alredyRegStudent:RegisteredForLunch) {
-						msg += alredyRegStudent.getPrnNumber()+ " ";
-					}
-					gAuth.setTokenStatus(true);
-					gAuth.setMessage("Registered Sucessfully for lunch "+getDate+" , except for the following Prn's "+msg+ " since they are already registered");
-				}
-				return gAuth;
-			}else {
-				gAuth.setMessage("Insufficient Coupons");
-				return gAuth;
-			}
+						try {
+							if(stu.getFoodCoupon()>=student.size()) {
+								for(Student checkStudent:student) {
+								boolean regStatus = isRegisterd(checkStudent.getPrnNumber());
+									if(!regStatus) {
+										notRegisteredForLunch.add(checkStudent);
+									}else {
+										RegisteredForLunch.add(checkStudent);
+									}
+								}
+								for(Student addToLunchReg :notRegisteredForLunch ) {
+									registerForLunchDb(addToLunchReg);
+								}
+									stu.setFoodCoupon(stu.getFoodCoupon()-notRegisteredForLunch.size());
+									fs.collection(collectionStudent).document(stu.getPrnNumber()).update("foodCoupon",stu.getFoodCoupon());
+										if(student.size()== notRegisteredForLunch.size()) {
+											String getDate = getTheValidDate();
+											gAuth.setMessage("students registered for lunch sucessfully "+getDate);
+											gAuth.setTokenStatus(true);	
+										}else {
+											String getDate = getTheValidDate();
+											String msg="";
+											for(Student alredyRegStudent:RegisteredForLunch) {
+												msg += alredyRegStudent.getPrnNumber()+ " ";
+											}
+											gAuth.setTokenStatus(true);
+											gAuth.setMessage("Registered Sucessfully for lunch "+getDate+" , except for the following Prn's "+msg+ " since they are already registered");
+										}
+										return gAuth;
+							}else {
+								gAuth.setMessage("Insufficient Coupons");
+							}
+							return gAuth;
+						}						
+						 catch (InterruptedException e) {
+							throw(e);
+						} catch (ExecutionException e) {
+							throw(e);
+						}		
 		}
 
 		private String getTheValidDate() {
@@ -695,7 +654,6 @@ public class AdminService {
 			dateNow=date.format(zone);	
 			if((timeNow.compareTo(afterFour)>0) ) {
 				zone=zone.plusDays(1);
-				String[] trimDate=zone.toString().split("T");
 				dateNow=date.format(zone);
 				return dateNow;
 			}else if(timeNow.compareTo(beforeTen)<0) {
@@ -706,10 +664,223 @@ public class AdminService {
 
 		private void registerForLunchDb(Student addToLunchReg) throws InterruptedException, ExecutionException {
 			Firestore fs=getFirestoreConnection();
+			System.out.println("registeredForLunch method");
 			Student getStudentDetails=getStudentObj(addToLunchReg.getPrnNumber());
 			RegisterdStudent regStud = new RegisterdStudent(getStudentDetails.getPrnNumber(),getStudentDetails.getName(),getStudentDetails.getCourse(),false);
 			ApiFuture<WriteResult>doc=fs.collection(regStudentList).document(regStud.getPrnNumber()).set(regStud);
 		}
 
+		public GeneralAuthentication removeStudent(String prnNumber, String authorization) throws FirebaseAuthException, InterruptedException, ExecutionException {
+			Firestore fs = getFirestoreConnection();
+			GeneralAuthentication gAuth = new GeneralAuthentication(false, null);
+			try {
+				String uid =checkHeaderAuthentication(authorization);
+				if(isStudentExists(prnNumber)) {
+					if(!uid.isEmpty()) {
+						ApiFuture<WriteResult> isStudentRemoved = fs.collection(collectionStudent).document(prnNumber).delete();
+						if(isStudentRemoved.isCancelled()) {
+							gAuth.setMessage("Unable to Delete Student");
+						}else {
+							gAuth.setMessage("Student removed Sucessfully");
+							gAuth.setTokenStatus(true);
+						}
+					}
+				}
+				else {
+					gAuth.setMessage("Enter correct prnNumber");
+				}
+				return gAuth;
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			} catch (InterruptedException e) {
+				throw(e);
+			} catch (ExecutionException e) {
+				throw(e);
+			}
+		}
+
+		public GeneralAuthentication removeStaff(String staffId, String authorization) throws Exception {
+			Firestore fs = getFirestoreConnection();
+			GeneralAuthentication gAuth = new GeneralAuthentication(false, null);
+			try {
+				String uid =checkHeaderAuthentication(authorization);
+				if(isStaffIdExists(staffId)) {
+					if(!uid.isEmpty()) {
+						ApiFuture<WriteResult> isStaffRemoved = fs.collection(collectionStaff).document(staffId).delete();
+						if(isStaffRemoved.isCancelled()) {
+							gAuth.setMessage("Unable to Delete Staff");
+						}else {
+							gAuth.setMessage("Staff removed Sucessfully");
+							gAuth.setTokenStatus(true);
+						}
+					}
+				}
+				else {
+					gAuth.setMessage("Enter correct staffId");
+				}
+				return gAuth;
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			} catch (Exception e) {
+				throw(e);
+			}
+		}
+
+		public GeneralAuthentication batchDelete(String batchName, String authorization) throws FirebaseAuthException, InterruptedException, ExecutionException {
+			Firestore fs = getFirestoreConnection();
+			GeneralAuthentication gAuth = new GeneralAuthentication(false, null);
+			try {
+				String uid = checkHeaderAuthentication(authorization);
+				if(!uid.isEmpty()) {
+					ApiFuture<QuerySnapshot> future =fs.collection(collectionStudent).whereEqualTo("batch", batchName).get();
+					List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+					for (DocumentSnapshot document : documents) {
+						  fs.collection(collectionStudent).document(document.getId()).delete();
+						}
+					gAuth.setMessage("Deleted Sucessfully");
+					gAuth.setTokenStatus(true);
+				}
+				return gAuth;
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			} catch (InterruptedException e) {
+				throw(e);
+			} catch (ExecutionException e) {
+				throw(e);
+			}
+		}
+
+		public List<String> getRegCollList(String authorization) throws FirebaseAuthException {		
+			Firestore fs=getFirestoreConnection();
+			List<String> result = new ArrayList<String>(); 
+			try {
+				String uid = checkHeaderAuthentication(authorization);
+				if(!uid.isEmpty()) {
+					Iterable<CollectionReference> allCol = fs.listCollections();
+				    for (CollectionReference str : allCol) {
+				    	if(str.getPath().contains("Reg")) {
+				    		result.add(str.getPath());
+				    	}
+				    }
+				}
+				return result;
+				
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			}
+		}
+
+		public GeneralAuthentication deleteRegColFromDb(List<String> colNames, String authorization) throws FirebaseAuthException,Exception {
+			Firestore fs=getFirestoreConnection();
+			GeneralAuthentication gAuth = new GeneralAuthentication(false, null);
+			try {
+				String uid = checkHeaderAuthentication(authorization);
+				if(!uid.isEmpty()) {
+					for(String docName:colNames) {
+						CollectionReference colRef = fs.collection(docName);
+						deleteCollection(colRef);
+					}
+					gAuth.setTokenStatus(true);
+					gAuth.setMessage("All Collections Deleted Sucessfully");
+				}
+				return gAuth;
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			} 
+		}
+		
+		private void deleteCollection(CollectionReference collection) throws InterruptedException,ExecutionException {
+			    ApiFuture<QuerySnapshot> future = collection.get();
+			    List<QueryDocumentSnapshot> documents;
+				try {
+					documents = future.get().getDocuments();
+					for (QueryDocumentSnapshot document : documents) {
+					      document.getReference().delete();			   
+					    }
+				} catch (InterruptedException | ExecutionException e) {
+					throw(e);
+				}
+			    			
+			  }
+
+		public List<RegisterdStudent> getTodaysRegList(String regList) throws InterruptedException,ExecutionException {
+			List<RegisterdStudent> lstReg = null;
+		try {
+			if(isPresent(regList)) {
+					lstReg=getTodaysList(regList);
+				} 
+			return lstReg;
+			}catch (InterruptedException | ExecutionException e) {
+				throw(e);
+			}
+		}
+
+		private List<RegisterdStudent> getTodaysList(String regList) throws InterruptedException,ExecutionException {
+			List<RegisterdStudent> lst = new ArrayList<>();
+			Firestore dbFirestore = FirestoreClient.getFirestore();
+			try {
+				ApiFuture<QuerySnapshot> stu = dbFirestore.collection(regList).get();
+				for (DocumentSnapshot doc : stu.get().getDocuments()) {
+						RegisterdStudent s = doc.toObject(RegisterdStudent.class);
+						lst.add(s);
+					}
+				return lst;
+			} catch (InterruptedException | ExecutionException e) {
+				throw(e);
+			}	
+		}
+
+	
+		public GeneralAuthentication getStaffById(String staffId, String authorization) throws FirebaseAuthException, Exception {
+			Firestore fs=getFirestoreConnection();
+			Staff staff=null;
+			GeneralAuthentication gAuth = new GeneralAuthentication(null, false, staff);
+			try {
+				String uid = checkHeaderAuthentication(authorization);	
+				if(!uid.isEmpty()) {
+					if(isStaffIdExists(staffId)) {
+						ApiFuture<DocumentSnapshot> future =fs.collection(collectionStaff).document(staffId).get();
+						DocumentSnapshot dsnap = future.get();
+						if(dsnap.exists()) {
+							staff=dsnap.toObject(Staff.class);
+							Staff refStaff = new Staff(staff.getStaffId(), staff.getStaffName(), staff.getMobileNumber());
+							gAuth.setStaff(refStaff);
+							gAuth.setTokenStatus(true);
+							gAuth.setMessage("Staff Details are as follows");
+							return gAuth;
+						}
+					}
+					gAuth.setMessage("Enter Correct StaffId");
+				}
+				return gAuth;
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			} catch (Exception e) {
+				throw(e);
+			}
+		}
+
+		public List<PaymentReceipt> getPaymentDetails(String authorization) throws ExecutionException, InterruptedException, FirebaseAuthException {
+			Firestore fs=getFirestoreConnection();
+			List<PaymentReceipt> payList = new ArrayList<PaymentReceipt>();
+			try {
+				String uid = checkHeaderAuthentication(authorization);
+				if(!uid.isEmpty()) {
+					ApiFuture<QuerySnapshot> qs = fs.collection(collectionOrders).get();
+					for(DocumentSnapshot doc:qs.get().getDocuments()) {
+						PaymentReceipt pr = doc.toObject(PaymentReceipt.class);
+						payList.add(pr);
+					}
+				}
+				return payList;
+			} catch (FirebaseAuthException e) {
+				throw(e);
+			} catch (InterruptedException e) {
+				throw(e);
+			} catch (ExecutionException e) {
+				throw(e);
+			}
+			
+		}
 		
 }
