@@ -213,7 +213,7 @@ public class StudentService {
 		try {
 			String uid = checkHeaderAuthentication(authorization);
 			if(!uid.isEmpty()) {
-				String url = "https://node-for-paymnet.herokuapp.com/razorpayOrders?amount="+amount;
+				String url = "https://cdackpcouponspayment.herokuapp.com/razorpayOrders?amount="+amount;
 				String s=rTemp.getForObject(url, String.class);
 				ObjectMapper objMapper = new ObjectMapper();
 				payment=objMapper.readValue(s, PaymentModel.class);
@@ -239,7 +239,7 @@ public class StudentService {
 		try {
 			String uid = checkHeaderAuthentication(authorization);
 			if(!uid.isEmpty()) {
-				String url = "https://node-for-paymnet.herokuapp.com/verifySignature";
+				String url = "https://cdackpcouponspayment.herokuapp.com/verifySignature";
 				String res=rTemp.postForObject(url, payment, String.class);
 				if(res.equals("true")) {
 					Student studData=getStudentData(uid);
