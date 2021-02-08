@@ -107,7 +107,7 @@ public class StudentController {
 		Map<String, Object> body = new LinkedHashMap<>();
 		GeneralAuthentication sAuth=null;
 		try {
-			if(studentService.checkTime()) {
+			if(studentService.checkTime(Authorization)) {
 				sAuth=studentService.lunchRegistration(student,Authorization);
 				if(sAuth.isTokenStatus()) {
 					return ControllerHelperHandler.generalHelperHandler(HttpStatus.CREATED, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
