@@ -188,22 +188,29 @@ public class StudentService {
 		}	
 	}
 
-	public boolean checkTime() {
-		final String afterFour = "16:00:00";
-		final String beforeTen = "10:00:00";
+	public boolean checkTime(String authorization) throws FirebaseAuthException {
+		String uid = checkHeaderAuthentication(authorization);
 		boolean isValid=false;
-		String timeNow=null;
-		DateTimeFormatter time = DateTimeFormatter.ofPattern("HH:mm:ss");	
-		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
-		ZonedDateTime zone = ZonedDateTime.now(zoneId);
-		timeNow=time.format(zone);
-		if((timeNow.compareTo(beforeTen)<0) || (timeNow.compareTo(afterFour)>0)) {
-			//System.out.println("true");
-			return isValid=true;
-		}else {
-			//System.out.println("false");
-			return isValid;
+		if(!(uid.isEmpty()))
+		{
+			final String afterFour = "16:00:00";
+			final String beforeTen = "10:00:00";
+			
+			String timeNow=null;
+			DateTimeFormatter time = DateTimeFormatter.ofPattern("HH:mm:ss");	
+			ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+			ZonedDateTime zone = ZonedDateTime.now(zoneId);
+			timeNow=time.format(zone);
+			if((timeNow.compareTo(beforeTen)<0) || (timeNow.compareTo(afterFour)>0)) {
+				//System.out.println("true");
+				return isValid=true;
+			}else {
+				//System.out.println("false");
+				return isValid;
+			}
 		}
+		return isValid;
+		
 	}
 
 	public GeneralAuthentication orderIdForPayment(String amount, String authorization) throws FirebaseAuthException, JsonProcessingException {
@@ -213,7 +220,7 @@ public class StudentService {
 		try {
 			String uid = checkHeaderAuthentication(authorization);
 			if(!uid.isEmpty()) {
-				String url = "https://cdackpcouponspayment.herokuapp.com/razorpayOrders?amount="+amount;
+				String url = "https://node-for-paymnet.herokuapp.com/razorpayOrders?amount="+amount;
 				String s=rTemp.getForObject(url, String.class);
 				ObjectMapper objMapper = new ObjectMapper();
 				payment=objMapper.readValue(s, PaymentModel.class);
@@ -239,7 +246,7 @@ public class StudentService {
 		try {
 			String uid = checkHeaderAuthentication(authorization);
 			if(!uid.isEmpty()) {
-				String url = "https://cdackpcouponspayment.herokuapp.com/verifySignature";
+				String url = "https://node-for-paymnet.herokuapp.com/verifySignature";
 				String res=rTemp.postForObject(url, payment, String.class);
 				if(res.equals("true")) {
 					Student studData=getStudentData(uid);
