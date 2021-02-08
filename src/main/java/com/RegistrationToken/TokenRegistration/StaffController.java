@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,34 +15,35 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.RegistrationToken.Models.Student;
+import com.RegistrationToken.Models.GeneralAuthentication;
 import com.RegistrationToken.Helpers.ControllerExceptionHandler;
 import com.RegistrationToken.Helpers.ControllerHelperHandler;
-import com.RegistrationToken.Models.GeneralAuthentication;
 import com.RegistrationToken.Models.PasswordChange;
-import com.RegistrationToken.Models.RegisterdStudent;
-import com.RegistrationToken.Models.Staff;
-import com.RegistrationToken.Models.VerifiyingCoupons;
-import com.RegistrationToken.Service.StaffService;
+import com.RegistrationToken.Models.PaymentModel;
+import com.RegistrationToken.Service.StudentService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.firebase.auth.FirebaseAuthException;
 
 
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/staff")
-public class StaffController {
+@RequestMapping("/student")
+public class StudentController {
 
 	@Autowired
-	StaffService staffService;
+	StudentService studentService;
 	
-	final static Logger logger = Logger.getLogger(StaffController.class);
-
+	final static Logger logger = Logger.getLogger(StudentController.class);
+    
 	@PutMapping("/updatePassword")
-	public ResponseEntity<Object> updateStaffPassword(@RequestBody PasswordChange spc,@RequestHeader("Authorization") String Authorization) {
+	public ResponseEntity<Object> updateStudentPassword(@RequestBody PasswordChange spc,@RequestHeader("Authorization") String Authorization) {
 		ResponseEntity<Object> response=null;
 		Map<String, Object> body = new LinkedHashMap<>();
 		try {
-			String res=staffService.updatePassword(spc.getOldPassword(),spc.getNewPassword(),Authorization);
+			String res=studentService.updatePassword(spc.getOldPassword(),spc.getNewPassword(),Authorization);
 			if(res.equals("Sucess")) {
 				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, "Password Updated Sucessfully", true, body, response);
 			}else {
@@ -59,13 +59,13 @@ public class StaffController {
 			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
 		}
 	}
-
+	
 	@PutMapping("/updateProfile")
-	public ResponseEntity<Object> updateStaffProfile(@RequestBody Staff newProfile,@RequestHeader("Authorization") String Authorization) {
+	public ResponseEntity<Object> updateStudentProfile(@RequestBody Student newProfile,@RequestHeader("Authorization") String Authorization) {
 		ResponseEntity<Object> response=null;
 		Map<String, Object> body = new LinkedHashMap<>();
 		try {
-			boolean res=staffService.profileUpdate(newProfile,Authorization);
+			boolean res=studentService.profileUpdate(newProfile,Authorization);
 			if(res) {
 				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, "Profile Updated Sucessfully", res, body, response);
 			}
@@ -77,13 +77,14 @@ public class StaffController {
 		}
 	}
 	
-	@PostMapping("/staffLogin")
-	public ResponseEntity<Object> staffLogin(@RequestBody Staff staff){
+	
+	@PostMapping("/studentLogin")
+	public ResponseEntity<Object> loginStudent(@RequestBody Student student){
 		ResponseEntity<Object> response = null;
 		Map<String, Object> body = new LinkedHashMap<>();
-			GeneralAuthentication sAuth;
+		GeneralAuthentication sAuth=null;
 			try {
-				sAuth = staffService.checkAuthentication(staff);
+				sAuth = studentService.checkAuthentication(student);
 				if(sAuth.isTokenStatus()) {
 					return ControllerHelperHandler.loginHandler(HttpStatus.OK, sAuth, body, response);
 				}else {
@@ -98,55 +99,100 @@ public class StaffController {
 				String msg="Internal server error";
 				return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
 			}
-			
 	}
 	
-	@PostMapping("/lunchRegCheck")
-	public ResponseEntity<Object> checkLunRegistration(@RequestBody VerifiyingCoupons verCoupons,@RequestHeader("Authorization") String Authorization){
+	@PostMapping("/studentRegLunch")
+	public ResponseEntity<Object> registerForLunch(@RequestBody List<Student> student,@RequestHeader("Authorization") String Authorization){
 		ResponseEntity<Object> response = null;
 		Map<String, Object> body = new LinkedHashMap<>();
-		GeneralAuthentication sAuth;
-			try {
-				if(!verCoupons.isCouponStatus()) {
-					sAuth=staffService.checkForLunch(verCoupons,Authorization);
-					if(sAuth.isTokenStatus()) {
-						return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK,sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
-					}
-					return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+		GeneralAuthentication sAuth=null;
+		try {
+			if(studentService.checkTime(Authorization)) {
+				sAuth=studentService.lunchRegistration(student,Authorization);
+				if(sAuth.isTokenStatus()) {
+					return ControllerHelperHandler.generalHelperHandler(HttpStatus.CREATED, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
 				}else {
-					sAuth=staffService.checkForTea(verCoupons,Authorization);
-					if(sAuth.isTokenStatus()) {
-						return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK,sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
-					}
 					return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
 				}
-			} catch (FirebaseAuthException e) {
-				logger.error("Firebase Exception : "+e.getMessage());
-				String msg="Firebase Internal Error";
-				return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
-			}catch (Exception e) {
-				logger.error("Internal Exception : "+e.getMessage());
-				String msg="Internal server error";
-				return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+			}else {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.BAD_REQUEST, "Registration Timeout,can't register between 10AM and 4PM", false, body, response);
 			}
+			
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		}  catch (Exception e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		}
+		
 	}
 	
-	@GetMapping("/getRegCollection")
-	public ResponseEntity<Object> getCollectionReg(@RequestHeader("Authorization") String Authorization){
+	@GetMapping("/getStudent")
+	public ResponseEntity<Object> getStudentByPrnNumber(@RequestParam("prnNumber") String prnNumber,@RequestHeader("Authorization") String Authorization){
 		ResponseEntity<Object> response = null;
 		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
 		try {
-			List<RegisterdStudent> listReceived = staffService.getRegCollection(Authorization);
-			if(listReceived.size()>0) {
-				return ControllerHelperHandler.listRegHelperHandler(HttpStatus.OK, "Recived Registered List", listReceived, body, response);
+			sAuth=studentService.getDataOfStudent(prnNumber,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.getStudent(), body, response);
 			}else {
-				return ControllerHelperHandler.listRegHelperHandler(HttpStatus.OK, "Registered List not available for current date", listReceived, body, response);
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.getStudent(), body, response);
 			}
 		} catch (FirebaseAuthException e) {
 			logger.error("Firebase Exception : "+e.getMessage());
 			String msg="Firebase Internal Error";
 			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
-		} catch (ExecutionException | InterruptedException e) {
+		} catch (InterruptedException | ExecutionException  e) {
+			logger.error("Internal Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		} 
+	}
+	
+	@GetMapping("/getOrderId")
+	public ResponseEntity<Object> getOrderIdForPayment(@RequestParam("amount") String amount,@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response = null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
+		try {
+			sAuth=studentService.orderIdForPayment(amount,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.paymentHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.getPayment(), body, response);
+			}else {
+				return ControllerHelperHandler.paymentHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.getPayment(), body, response);
+			}
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		} catch (JsonProcessingException e) {
+			logger.error("JSON Exception : "+e.getMessage());
+			String msg="Internal server error";
+			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
+		}
+	}
+	
+	@PostMapping("/checkSignatureForPayment")
+	public ResponseEntity<Object> checkSignature(@RequestBody PaymentModel payment,@RequestHeader("Authorization") String Authorization){
+		ResponseEntity<Object> response = null;
+		Map<String, Object> body = new LinkedHashMap<>();
+		GeneralAuthentication sAuth=null;
+		try {
+			sAuth=studentService.checkPaymentSignature(payment,Authorization);
+			if(sAuth.isTokenStatus()) {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.OK, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}else {
+				return ControllerHelperHandler.generalHelperHandler(HttpStatus.CONFLICT, sAuth.getMessage(), sAuth.isTokenStatus(), body, response);
+			}
+		} catch (FirebaseAuthException e) {
+			logger.error("Firebase Exception : "+e.getMessage());
+			String msg="Firebase Internal Error";
+			return ControllerExceptionHandler.FirebaseInternalExceptionHandler(body, response, msg);
+		}  catch (Exception e) {
 			logger.error("Internal Exception : "+e.getMessage());
 			String msg="Internal server error";
 			return ControllerExceptionHandler.InternalExceptionHandler(body, response, msg);
